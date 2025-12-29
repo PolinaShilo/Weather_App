@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Weather App{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/auth.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    <!-- Контейнер для страниц аутентификации -->
+    {% if request.url.path in ['/login', '/register'] %}
+    <div class="auth-page">
+        <div class="auth-container">
+            {% block auth_content %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- Основной layout -->
+    {% else %}
+    <div class="header">
+        <div class="container header-content">
+            <a href="/" class="logo">
+                <i class="fas fa-cloud-sun"></i>
+                <h1>Weather Forecast</h1>
+            </a>
+
+            <div class="auth-links">
+                {% if user %}
+                <div class="user-info">
+                    <span class="username">
+                        <i class="fas fa-user"></i>
+                        {{ user.username }}
+                    </span>
+                    <form action="/logout" method="post" class="logout-form">
+                        <button type="submit" class="btn btn-outline">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Logout
+                        </button>
+                    </form>
+                    <button id="theme-toggle" class="btn btn-outline">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+                {% else %}
+                <div class="guest-links">
+                    <a href="/login" class="btn">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Login
+                    </a>
+                    <a href="/register" class="btn btn-success">
+                        <i class="fas fa-user-plus"></i>
+                        Register
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="main-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="container">
+            <p>&copy; 2025 Weather Forecast App. Data provided by <a href="https://open-meteo.com/" target="_blank">Open-Meteo</a></p>
+            <p>
+                <a href="/privacy">Privacy Policy</a> |
+                <a href="/terms">Terms of Service</a> |
+                <a href="https://github.com/yourusername/weather-app" target="_blank">
+                    <i class="fab fa-github"></i> GitHub
+                </a>
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- JavaScript файлы -->
+    <script src="{{ url_for('static', path='js/main.js') }}"></script>
+    <script src="{{ url_for('static', path='js/weather.js') }}"></script>
+
+    {% block scripts %}{% endblock %}
+
+    <script>
+        // Добавляем обработчик для формы выхода
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoutForms = document.querySelectorAll('.logout-form');
+            logoutForms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    if (!confirm('Are you sure you want to logout?')) {
+                        e.preventDefault();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

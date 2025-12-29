@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - Weather Application</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">
+                    <i class="fas fa-cloud-sun"></i>
+                    <h1>Weather Application</h1>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="main-content" style="text-align: center; padding: 4rem 2rem;">
+            <div class="error-icon" style="font-size: 4rem; color: #e74c3c; margin-bottom: 1rem;">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+
+            <h2 style="color: var(--secondary-color); margin-bottom: 1rem;">
+                Error {{ error_code }}
+            </h2>
+
+            <p style="color: #666; margin-bottom: 2rem; max-width: 500px; margin-left: auto; margin-right: auto;">
+                {{ error_message }}
+            </p>
+
+            {% if details %}
+                <div style="background: #f8f9fa; padding: 1rem; border-radius: var(--border-radius); margin-bottom: 2rem; text-align: left;">
+                    <h4 style="margin-top: 0;">Error Details:</h4>
+                    <pre style="margin: 0; font-size: 0.9rem; overflow: auto;">{{ details }}</pre>
+                </div>
+            {% endif %}
+
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <a href="/" class="btn btn-outline">
+                    <i class="fas fa-home"></i> Home
+                </a>
+
+                <a href="/cities/add" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Try Again
+                </a>
+
+                <a href="/debug/auth" class="btn">
+                    <i class="fas fa-bug"></i> Debug
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <p>Weather Application &copy; 2025</p>
+        </div>
+    </footer>
+</body>
+</html>

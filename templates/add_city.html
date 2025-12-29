@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add City - Weather Application</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .add-city-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .form-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--box-shadow);
+        }
+
+        .form-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 1.5rem;
+            color: var(--secondary-color);
+        }
+
+        .form-title i {
+            color: var(--primary-color);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .form-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">
+                    <i class="fas fa-cloud-sun"></i>
+                    <h1>Weather Application</h1>
+                </a>
+                <div class="user-info">
+                    {% if user %}
+                        <span class="username">{{ user.username }}</span>
+                        <form action="/logout" method="post" style="display: inline;">
+                            <button type="submit" class="btn btn-outline">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </button>
+                        </form>
+                    {% else %}
+                        <a href="/login" class="btn btn-outline">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="add-city-container">
+            <!-- Breadcrumbs -->
+            <nav style="margin: 1.5rem 0;">
+                <a href="/" style="color: var(--primary-color); text-decoration: none;">
+                    <i class="fas fa-home"></i> Home
+                </a>
+                <span style="margin: 0 10px; color: #999;">/</span>
+                <span style="color: var(--secondary-color);">
+                    <i class="fas fa-plus-circle"></i> Add City
+                </span>
+            </nav>
+
+            <!-- Form Card -->
+            <div class="form-card">
+                <div class="form-title">
+                    <i class="fas fa-map-marked-alt"></i>
+                    <h2>Add New City</h2>
+                </div>
+
+                <!-- Error/Success Messages -->
+                {% if error %}
+                    <div class="alert alert-error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        {{ error }}
+                    </div>
+                {% endif %}
+
+                {% if success %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i>
+                        {{ success }}
+                    </div>
+                {% endif %}
+
+                <!-- Form -->
+                <form action="/cities/add" method="post">
+                    <div class="form-group">
+                        <label for="name">
+                            <i class="fas fa-city"></i> City Name
+                        </label>
+                        <input type="text"
+                               id="name"
+                               name="name"
+                               class="form-control"
+                               placeholder="Example: Moscow"
+                               required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="latitude">
+                                <i class="fas fa-map-marker-alt"></i> Latitude
+                            </label>
+                            <input type="number"
+                                   id="latitude"
+                                   name="latitude"
+                                   class="form-control"
+                                   step="0.0001"
+                                   placeholder="55.7558"
+                                   required>
+                            <small class="form-text">From -90 to 90</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="longitude">
+                                <i class="fas fa-map-marker-alt"></i> Longitude
+                            </label>
+                            <input type="number"
+                                   id="longitude"
+                                   name="longitude"
+                                   class="form-control"
+                                   step="0.0001"
+                                   placeholder="37.6173"
+                                   required>
+                            <small class="form-text">From -180 to 180</small>
+                        </div>
+                    </div>
+
+                    <!-- Hints -->
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: var(--border-radius); margin-top: 1rem;">
+                        <p style="margin: 0 0 0.5rem 0; font-weight: 500;">
+                            <i class="fas fa-lightbulb"></i> How to find coordinates:
+                        </p>
+                        <ul style="margin: 0; padding-left: 1.5rem; font-size: 0.9rem;">
+                            <li>Use <a href="https://www.google.com/maps" target="_blank">Google Maps</a></li>
+                            <li>Find the city, right-click → "What's here?"</li>
+                            <li>Coordinates will appear in the search bar</li>
+                        </ul>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-plus"></i> Add City
+                        </button>
+
+                        <a href="/" class="btn btn-outline">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Popular Cities Examples -->
+            <div style="margin-top: 2rem;">
+                <h3 style="margin-bottom: 1rem;">
+                    <i class="fas fa-star"></i> Example coordinates of popular cities:
+                </h3>
+
+               <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem;">
+
+
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: var(--border-radius);">
+                        <strong>Saint Petersburg</strong><br>
+                        Latitude: 59.9343<br>
+                        Longitude: 30.3351
+                    </div>
+
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: var(--border-radius);">
+                        <strong>Novosibirsk</strong><br>
+                        Latitude: 55.0084<br>
+                        Longitude: 82.9357
+                    </div>
+
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: var(--border-radius);">
+                        <strong>Sochi</strong><br>
+                        Latitude: 43.5855<br>
+                        Longitude: 39.7231
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>Weather Application &copy; 2025 |
+                <a href="/">Home</a>
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Simple coordinates validation
+            const form = document.querySelector('form');
+            const latInput = document.getElementById('latitude');
+            const lonInput = document.getElementById('longitude');
+
+            form.addEventListener('submit', function(e) {
+                const lat = parseFloat(latInput.value);
+                const lon = parseFloat(lonInput.value);
+
+                if (isNaN(lat) || isNaN(lon)) {
+                    e.preventDefault();
+                    alert('Please enter valid coordinates');
+                    return false;
+                }
+
+                if (lat < -90 || lat > 90) {
+                    e.preventDefault();
+                    alert('Latitude must be between -90 and 90');
+                    latInput.focus();
+                    return false;
+                }
+
+                if (lon < -180 || lon > 180) {
+                    e.preventDefault();
+                    alert('Longitude must be between -180 and 180');
+                    lonInput.focus();
+                    return false;
+                }
+
+                return true;
+            });
+
+            // Quick selection of popular city
+            document.querySelectorAll('[style*="background: #f8f9fa"]').forEach(item => {
+                item.style.cursor = 'pointer';
+                item.addEventListener('click', function() {
+                    const text = this.textContent;
+                    const lines = text.split('\n');
+
+                    // Extract city name and coordinates
+                    const cityName = lines[0].trim();
+                    const lat = lines[1].replace('Latitude:', '').trim();
+                    const lon = lines[2].replace('Longitude:', '').trim();
+
+                    // Fill the form
+                    document.getElementById('name').value = cityName;
+                    document.getElementById('latitude').value = lat;
+                    document.getElementById('longitude').value = lon;
+
+                    // Scroll to form
+                    document.querySelector('form').scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+
+                item.addEventListener('mouseenter', function() {
+                    this.style.backgroundColor = '#e9ecef';
+                    this.style.transform = 'translateY(-2px)';
+                    this.style.transition = 'all 0.2s';
+                });
+
+                item.addEventListener('mouseleave', function() {
+                    this.style.backgroundColor = '#f8f9fa';
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Application</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Authentication modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            animation: slideUp 0.3s ease;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: var(--secondary-color);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #666;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .modal-body {
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Guest mode styles */
+        .guest-mode {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            margin: 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .guest-mode i {
+            color: #f39c12;
+        }
+        /* Стили для уведомлений */
+.alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.alert-error {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.alert-info {
+    color: #0c5460;
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+}
+
+/* Стили для кнопок с анимацией */
+.btn-icon .fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Стили для таблицы */
+.update-time {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.time-ago {
+    font-size: 0.85em;
+    color: #7f8c8d;
+    margin-top: 3px;
+}
+
+/* Температурные стили */
+.temp-hot {
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+.temp-cold {
+    color: #3498db;
+    font-weight: bold;
+}
+
+.temp-mild {
+    color: #27ae60;
+    font-weight: bold;
+}
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">
+                    <i class="fas fa-cloud-sun"></i>
+                    <h1>Weather Application</h1>
+                </a>
+                <div class="user-info">
+                    {% if user %}
+                        <span class="username">{{ user.username }}</span>
+                        <form action="/logout" method="post" style="display: inline;">
+                            <button type="submit" class="btn btn-outline">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </button>
+                        </form>
+                    {% else %}
+                        <a href="/login" class="btn btn-outline">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Control Panel TOP -->
+        <div class="control-panel">
+            <div class="control-header">
+                <h2><i class="fas fa-sliders-h"></i> City Management</h2>
+                {% if user %}
+                    <span class="user-badge">
+                        <i class="fas fa-user"></i> {{ user.username }}
+                    </span>
+                {% endif %}
+            </div>
+
+            <!-- Guest notification -->
+            {% if not user %}
+                <div class="guest-mode">
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        <strong>Guest Mode</strong>
+                        <p style="margin: 0.25rem 0 0 0; font-size: 0.9rem;">
+                            Authentication is required to add and manage cities
+                        </p>
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="actions-bar">
+                <!-- Update weather button -->
+                <form action="/cities/update" method="post">
+                    <button type="submit"
+                            class="btn btn-success"
+                            {% if not user %}disabled{% endif %}>
+                        <i class="fas fa-sync-alt"></i> Update Weather
+                    </button>
+                    <small class="btn-hint">
+                        Update all cities (every {{ update_interval }} min)
+                    </small>
+                </form>
+
+                <!-- Add city button -->
+                {% if user %}
+                    <a href="/cities/add" class="btn" id="add-city-btn">
+                        <i class="fas fa-plus"></i> Add City
+                    </a>
+                {% else %}
+                    <button type="button" class="btn" id="add-city-guest-btn">
+                        <i class="fas fa-plus"></i> Add City
+                    </button>
+                {% endif %}
+
+                <!-- Reset cities button -->
+                <form action="/cities/reset" method="post" onsubmit="return confirm('Restore default cities?')">
+                    <button type="submit"
+                            class="btn btn-outline"
+                            {% if not user %}disabled{% endif %}>
+                        <i class="fas fa-undo"></i> Reset Cities
+                    </button>
+                    <small class="btn-hint">
+                        Restore default cities
+                    </small>
+                </form>
+            </div>
+
+            <!-- Information panel -->
+            <div class="info-panel">
+                <div class="info-item">
+                    <i class="fas fa-city"></i>
+                    <span>Total cities: <strong>{{ cities|length }}</strong></span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-thermometer-half"></i>
+                    <span>Updated: <strong id="updated-count">{{ cities|selectattr('temperature')|list|length }}</strong></span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-clock"></i>
+                    <span>Status:
+                        <strong>
+                            {% if user %}
+                                <span style="color: #27ae60;">Authenticated</span>
+                            {% else %}
+                                <span style="color: #e74c3c;">Guest</span>
+                            {% endif %}
+                        </strong>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications -->
+        {% if error %}
+            <div class="alert alert-error" style="margin-top: 1rem;">
+                <i class="fas fa-exclamation-circle"></i>
+                {{ error }}
+            </div>
+        {% endif %}
+
+        {% if success %}
+            <div class="alert alert-success" style="margin-top: 1rem;">
+                <i class="fas fa-check-circle"></i>
+                {{ success }}
+            </div>
+        {% endif %}
+
+        {% if info %}
+            <div class="alert alert-info" style="margin-top: 1rem;">
+                <i class="fas fa-info-circle"></i>
+                {{ info }}
+            </div>
+        {% endif %}
+
+        <!-- Main content with cities -->
+        <main class="main-content" style="margin-top: 1.5rem;">
+            {% if cities %}
+                <!-- Cities table -->
+                <div class="table-responsive">
+                    <table class="weather-table">
+                        <thead>
+                            <tr>
+                                <th><i class="fas fa-city"></i> City</th>
+                                <th><i class="fas fa-thermometer-half"></i> Temperature</th>
+                                <th><i class="fas fa-map-marker-alt"></i> Coordinates</th>
+                                <th><i class="fas fa-clock"></i> Updated</th>
+                                <th><i class="fas fa-cogs"></i> Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for city in cities %}
+                                <tr>
+                                    <td class="city-name">
+                                        <i class="fas fa-map-pin"></i> {{ city.name }}
+                                    </td>
+                                    <td>
+                                        {% if city.temperature is not none %}
+                                            {% set temp_class = 'temp-hot' if city.temperature > 25 else 'temp-cold' if city.temperature < 10 else 'temp-mild' %}
+                                            <span class="temperature {{ temp_class }}">
+                                                {{ city.temperature|round(1) }}°C
+                                            </span>
+                                            <div class="weather-status">
+                                                {% if city.temperature > 30 %}
+                                                    <i class="fas fa-sun" style="color: #e74c3c;"></i> Hot
+                                                {% elif city.temperature > 20 %}
+                                                    <i class="fas fa-cloud-sun" style="color: #f39c12;"></i> Warm
+                                                {% elif city.temperature > 10 %}
+                                                    <i class="fas fa-cloud" style="color: #3498db;"></i> Cool
+                                                {% elif city.temperature > 0 %}
+                                                    <i class="fas fa-cloud-rain" style="color: #3498db;"></i> Cold
+                                                {% else %}
+                                                    <i class="fas fa-snowflake" style="color: #95a5a6;"></i> Freezing
+                                                {% endif %}
+                                            </div>
+                                        {% else %}
+                                            <span class="temperature no-data">
+                                                <i class="fas fa-question-circle"></i> No data
+                                            </span>
+                                            <div class="weather-status">
+                                                <i class="fas fa-exclamation-triangle"></i> Update required
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="coordinates">
+                                            <div class="lat">{{ city.latitude|round(4) }}</div>
+                                            <div class="lon">{{ city.longitude|round(4) }}</div>
+                                        </div>
+                                        <small style="color: #666;">
+                                            <i class="fas fa-globe-europe"></i>
+                                            {% if city.latitude > 0 %}N{% else %}S{% endif %}
+                                            {{ city.latitude|abs|round(1) }}°,
+                                            {% if city.longitude > 0 %}E{% else %}W{% endif %}
+                                            {{ city.longitude|abs|round(1) }}°
+                                        </small>
+                                    </td>
+                                    <td>
+                                        {% if city.updated_at %}
+                                            {% set time_diff = (now - city.updated_at).total_seconds() / 60 %}
+                                            <span class="update-time" data-updated="{{ city.updated_at.isoformat() }}">
+                                                {{ city.updated_at.strftime('%H:%M') }}
+                                            </span>
+                                            <div class="time-ago">
+                                                {% if time_diff < 1 %}
+                                                    <span style="color: #27ae60;">
+                                                        <i class="fas fa-check-circle"></i> Just now
+                                                    </span>
+                                                {% elif time_diff < 60 %}
+                                                    <span style="color: #27ae60;">
+                                                        {{ time_diff|int }} min ago
+                                                    </span>
+                                                {% elif time_diff < 1440 %}
+                                                    <span style="color: #f39c12;">
+                                                        {{ (time_diff / 60)|int }} hours ago
+                                                    </span>
+                                                {% else %}
+                                                    <span style="color: #e74c3c;">
+                                                        {{ (time_diff / 1440)|int }} days ago
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                        {% else %}
+                                            <span class="no-data">Never</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <!-- Single city update button -->
+                                            <form action="/api/weather/{{ city.id }}" method="post" class="inline-form">
+                                               <button type="button"
+        class="btn-icon update-single-city"
+        data-city-id="{{ city.id }}"
+        data-city-name="{{ city.name }}"
+        title="Update temperature"
+        {% if not user %}disabled{% endif %}>
+    <i class="fas fa-redo"></i>
+</button>
+                                            </form>
+
+                                            <!-- Delete city button -->
+                                            <form action="/cities/remove/{{ city.id }}" method="post"
+                                                  onsubmit="return confirm('Delete city {{ city.name }}?')"
+                                                  class="inline-form">
+                                                <button type="submit"
+                                                        class="btn-icon btn-danger"
+                                                        title="Delete city"
+                                                        {% if not user %}disabled{% endif %}>
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <!-- Message when no cities -->
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-city"></i>
+                    </div>
+                    <h3>No cities to display</h3>
+                    <p>
+                        {% if user %}
+                            Add cities to see weather
+                        {% else %}
+                            Log in to add cities
+                        {% endif %}
+                    </p>
+                    {% if user %}
+                        <a href="/cities/add" class="btn btn-success">
+                            <i class="fas fa-plus"></i> Add first city
+                        </a>
+                    {% else %}
+                        <button type="button" class="btn btn-success" id="add-first-city-btn">
+                            <i class="fas fa-plus"></i> Add first city
+                        </button>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>Weather Application &copy; 2025 |
+                <a href="/health">System Status</a> |
+                {% if user %}
+                    <a href="/cities/add">Add City</a> |
+                {% else %}
+                    <a href="/login">Login</a> |
+                {% endif %}
+                <a href="/?refresh=1">Refresh</a>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Authentication modal -->
+    <div id="authModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-sign-in-alt"></i> Authentication Required</h3>
+                <button type="button" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>You need to log in to add cities.</p>
+                <p>Authentication will allow you to:</p>
+                <ul style="margin: 0.5rem 0 0.5rem 1.5rem;">
+                    <li>Add cities</li>
+                    <li>Delete cities</li>
+                    <li>Update weather</li>
+                    <li>Save your settings</li>
+                </ul>
+                <p style="margin-top: 1rem;">Don't have an account? You can register.</p>
+            </div>
+            <div class="modal-actions">
+                <a href="/register" class="btn btn-outline">
+                    <i class="fas fa-user-plus"></i> Register
+                </a>
+                <a href="/login" class="btn btn-success">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+      <!-- JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Weather App initialized');
+
+    // ========== MODAL WINDOW FUNCTIONS ==========
+    const authModal = document.getElementById('authModal');
+    const modalClose = authModal.querySelector('.modal-close');
+    const addCityGuestBtn = document.getElementById('add-city-guest-btn');
+    const addFirstCityBtn = document.getElementById('add-first-city-btn');
+
+    // Show modal when guest clicks "Add City"
+    if (addCityGuestBtn) {
+        addCityGuestBtn.addEventListener('click', function() {
+            showAuthModal();
+        });
+    }
+
+    if (addFirstCityBtn) {
+        addFirstCityBtn.addEventListener('click', function() {
+            showAuthModal();
+        });
+    }
+
+    // Check all "Add City" links
+    document.querySelectorAll('a[href="/cities/add"]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            {% if not user %}
+                e.preventDefault();
+                showAuthModal();
+            {% endif %}
+        });
+    });
+
+    function showAuthModal() {
+        authModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function hideAuthModal() {
+        authModal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    // Close modal
+    modalClose.addEventListener('click', hideAuthModal);
+
+    // Close when clicking outside
+    authModal.addEventListener('click', function(e) {
+        if (e.target === authModal) {
+            hideAuthModal();
+        }
+    });
+
+    // Close with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && authModal.classList.contains('active')) {
+            hideAuthModal();
+        }
+    });
+
+    // ========== SINGLE CITY UPDATE BUTTONS ==========
+    document.querySelectorAll('.update-single-city').forEach(button => {
+        button.addEventListener('click', async function() {
+            if (this.disabled) {
+                showAuthModal();
+                return;
+            }
+
+            const cityId = this.dataset.cityId;
+            const cityName = this.dataset.cityName;
+
+            console.log(`DEBUG: Clicked update for ${cityName} (ID: ${cityId})`);
+            console.log('Button element:', this);
+
+            // Показываем индикатор загрузки
+            const originalIcon = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            this.disabled = true;
+
+            try {
+                console.log(`DEBUG: Sending request to /api/weather/${cityId}`);
+                const response = await fetch(`/api/weather/${cityId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                console.log(`DEBUG: Response status: ${response.status}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('DEBUG: Response data:', data);
+
+                if (data.success) {
+                    // Находим строку таблицы
+                    const row = this.closest('tr');
+                    if (!row) {
+                        console.error('DEBUG: Row not found for button:', this);
+                        showNotification(`✅ ${cityName} updated: ${data.temperature}°C`, 'success');
+                        setTimeout(() => location.reload(), 1000);
+                        return;
+                    }
+
+                    console.log('DEBUG: Found row:', row);
+
+                    // 1. ОБНОВЛЯЕМ ТЕМПЕРАТУРУ
+                    const tempElement = row.querySelector('.temperature');
+                    if (tempElement) {
+                        const temp = data.temperature;
+                        console.log(`DEBUG: Updating temperature from ${tempElement.textContent} to ${temp}°C`);
+                        tempElement.textContent = `${temp.toFixed(1)}°C`;
+
+                        // Обновляем цвет температуры
+                        tempElement.className = 'temperature';
+                        if (temp > 25) {
+                            tempElement.classList.add('temp-hot');
+                        } else if (temp < 10) {
+                            tempElement.classList.add('temp-cold');
+                        } else {
+                            tempElement.classList.add('temp-mild');
+                        }
+                        console.log('DEBUG: Temperature updated');
+                    } else {
+                        console.error('DEBUG: Temperature element not found in row');
+                    }
+
+                    // 2. ОБНОВЛЯЕМ ВРЕМЯ
+                    const timeElement = row.querySelector('.update-time');
+                    if (timeElement) {
+                        if (data.updated_at) {
+                            const date = new Date(data.updated_at);
+                            const timeString = date.toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false
+                            });
+                            console.log(`DEBUG: Updating time from "${timeElement.textContent}" to "${timeString}"`);
+
+                            // Обновляем текст
+                            timeElement.textContent = timeString;
+
+                            // Обновляем data-атрибут
+                            timeElement.dataset.updated = data.updated_at;
+                            console.log(`DEBUG: Set data-updated to: ${data.updated_at}`);
+
+                            // 3. ОБНОВЛЯЕМ "СКОЛЬКО МИНУТ НАЗАД"
+                            updateTimeAgoForElement(timeElement);
+                        } else {
+                            console.warn('DEBUG: No updated_at in response');
+                        }
+                    } else {
+                        console.error('DEBUG: Time element not found in row');
+                    }
+
+                    // 4. ОБНОВЛЯЕМ СЧЕТЧИК
+                    updateCounter();
+
+                    showNotification(`✅ ${cityName} updated: ${data.temperature.toFixed(1)}°C`, 'success');
+
+                } else {
+                    showNotification(`❌ Error: ${data.error || 'Unknown error'}`, 'error');
+                }
+
+            } catch (error) {
+                console.error('DEBUG: Error updating city:', error);
+                showNotification(`❌ Error updating ${cityName}`, 'error');
+            } finally {
+                // Восстанавливаем кнопку
+                setTimeout(() => {
+                    this.innerHTML = originalIcon;
+                    this.disabled = false;
+                }, 1000);
+            }
+        });
+    });
+
+    // ========== UPDATE ALL CITIES BUTTON ==========
+    const updateAllForm = document.querySelector('form[action="/cities/update"]');
+    if (updateAllForm) {
+        updateAllForm.addEventListener('submit', function(e) {
+            const button = updateAllForm.querySelector('button[type="submit"]');
+            if (button.disabled) {
+                e.preventDefault();
+                return;
+            }
+
+            // Показываем индикатор загрузки
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+            button.disabled = true;
+
+            // Восстанавливаем кнопку через 5 секунд (на случай ошибки)
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }, 5000);
+        });
+    }
+
+    // ========== UTILITY FUNCTIONS ==========
+
+    // Функция для обновления "сколько минут назад" для конкретного элемента
+    function updateTimeAgoForElement(timeElement) {
+        if (!timeElement || !timeElement.dataset.updated) {
+            console.warn('DEBUG: No time element or no data-updated attribute');
+            return;
+        }
+
+        try {
+            const updatedAt = new Date(timeElement.dataset.updated);
+            const now = new Date();
+            const diffMinutes = Math.floor((now - updatedAt) / (1000 * 60));
+
+            console.log(`DEBUG: Time difference: ${diffMinutes} minutes`);
+
+            // Ищем элемент time-ago
+            let timeAgoElement = timeElement.nextElementSibling;
+
+            // Проверяем, является ли следующий элемент time-ago
+            if (!timeAgoElement || !timeAgoElement.classList.contains('time-ago')) {
+                // Ищем time-ago внутри той же ячейки
+                timeAgoElement = timeElement.closest('td').querySelector('.time-ago');
+            }
+
+            if (timeAgoElement) {
+                if (diffMinutes < 1) {
+                    timeAgoElement.innerHTML = '<span style="color: #27ae60;"><i class="fas fa-check-circle"></i> Just now</span>';
+                } else if (diffMinutes < 60) {
+                    timeAgoElement.innerHTML = `<span style="color: #27ae60;">${diffMinutes} min ago</span>`;
+                } else if (diffMinutes < 1440) {
+                    const hours = Math.floor(diffMinutes / 60);
+                    timeAgoElement.innerHTML = `<span style="color: #f39c12;">${hours} hours ago</span>`;
+                } else {
+                    const days = Math.floor(diffMinutes / 1440);
+                    timeAgoElement.innerHTML = `<span style="color: #e74c3c;">${days} days ago</span>`;
+                }
+                console.log('DEBUG: Time ago updated successfully');
+            } else {
+                console.warn('DEBUG: Time ago element not found');
+            }
+        } catch (error) {
+            console.error('DEBUG: Error updating time ago:', error);
+        }
+    }
+
+    // Update all time ago elements
+    function updateTimeAgo() {
+        document.querySelectorAll('.update-time').forEach(element => {
+            updateTimeAgoForElement(element);
+        });
+    }
+
+    // Update counter of updated cities
+    function updateCounter() {
+        const updatedCount = document.querySelectorAll('.temperature:not(.no-data)').length;
+        const counterElement = document.getElementById('updated-count');
+        if (counterElement) {
+            counterElement.textContent = updatedCount;
+        }
+    }
+
+    // Show notification
+    function showNotification(message, type = 'info') {
+        // Remove old notifications
+        document.querySelectorAll('.temp-notification').forEach(n => n.remove());
+
+        const notification = document.createElement('div');
+        notification.className = `temp-notification`;
+        notification.innerHTML = `
+            <div style="
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                border-radius: 8px;
+                background: ${type === 'success' ? '#d4edda' : type === 'error' ? '#f8d7da' : '#d1ecf1'};
+                border: 1px solid ${type === 'success' ? '#c3e6cb' : type === 'error' ? '#f5c6cb' : '#bee5eb'};
+                color: ${type === 'success' ? '#155724' : type === 'error' ? '#721c24' : '#0c5460'};
+                z-index: 9999;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                font-size: 14px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                animation: slideInRight 0.3s ease;
+            ">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+                <span>${message}</span>
+            </div>
+        `;
+
+        document.body.appendChild(notification);
+
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+            notification.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+
+    // Add animations to head
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .fa-spinner {
+            animation: spin 1s linear infinite;
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Debug: Check HTML structure
+    console.log('=== DEBUG: Checking HTML structure ===');
+    console.log('Number of update buttons:', document.querySelectorAll('.update-single-city').length);
+    document.querySelectorAll('.update-single-city').forEach((btn, i) => {
+        console.log(`Button ${i}:`, {
+            cityId: btn.dataset.cityId,
+            cityName: btn.dataset.cityName,
+            parentRow: btn.closest('tr'),
+            hasTimeElement: btn.closest('tr')?.querySelector('.update-time') !== null
+        });
+    });
+
+    // Initial updates
+    updateTimeAgo();
+    updateCounter();
+
+    // Update time every minute
+    setInterval(updateTimeAgo, 60000);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+# Виртуальное окружение
+weather/
+venv/
+env/
+.env
+.venv/
+
+# Кэш Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Файлы IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Локальные настройки и секреты
+*.env
+*.secret
+config/local.py
+
+# Базы данных
+*.db
+*.sqlite3
+db.sqlite3
+
+# Логи
+*.log
+
+# Временные файлы
+*.tmp
+temp/
+tmp/
+
+# Операционные системы
+.DS_Store  # macOS
+Thumbs.db  # Windows
